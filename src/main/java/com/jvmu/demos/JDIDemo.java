@@ -1,7 +1,10 @@
 package com.jvmu.demos;
 
 import com.jvmu.jdi.*;
-import com.jvmu.jdi.SelfEventQueue;
+import com.jvmu.jdi.vm.*;
+import com.jvmu.jdi.types.*;
+import com.jvmu.jdi.threads.*;
+import com.jvmu.jdi.events.*;
 
 import java.util.List;
 
