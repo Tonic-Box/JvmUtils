@@ -48,3 +48,7 @@ bin/
 /.idea/misc.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
+/lib/asm-9.5.jar
+/lib/asm-commons-9.5.jar
+/lib/asm-util-9.5.jar
+/download_asm.bat
