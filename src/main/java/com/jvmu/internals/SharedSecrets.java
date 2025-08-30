@@ -71,15 +71,14 @@ public class SharedSecrets {
     // ==================== JAVA.LANG ACCESS ====================
     
     /**
-     * Get JavaLangAccess for accessing java.lang internals
-     * @return JavaLangAccess wrapper or null if not available
+     * Get JavaLangAccess object for accessing java.lang internals
+     * @return JavaLangAccess instance or null if not available
      */
-    public static JavaLangAccess getJavaLangAccess() {
+    public static Object getJavaLangAccess() {
         if (!isAvailable()) return null;
-        Object nativeAccess = ReflectBuilder.of(sharedSecretsClass)
+        return ReflectBuilder.of(sharedSecretsClass)
             .staticMethod("getJavaLangAccess", null, null)
             .get();
-        return nativeAccess != null ? new JavaLangAccess(nativeAccess) : null;
     }
     
     /**

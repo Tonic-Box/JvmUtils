@@ -1,6 +1,5 @@
-package com.jvmu.internals;
+package com.jvmu.internals.sharedsecrets;
 
-import com.jvmu.module.ModuleBootstrap;
 import com.jvmu.util.ReflectBuilder;
 
 import java.lang.annotation.Annotation;
@@ -19,11 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 /**
- * JavaLangAccess - Wrapper for jdk.internal.misc.JavaLangAccess using privileged access
+ * JavaLangAccess - Wrapper for jdk.internal.misc.JavaLangAccess
  * 
- * Provides access to java.lang package internals without requiring special permissions
- * or module access restrictions. JavaLangAccess is a "shared secret" interface that
- * allows access to package-private methods and functionality within java.lang.
+ * Provides access to java.lang package internals for class introspection,
+ * annotation processing, module system integration, thread management,
+ * string operations, and class loading without requiring special permissions.
  * 
  * Key capabilities:
  * - Class introspection and metadata access
@@ -34,56 +33,27 @@ import java.util.stream.Stream;
  * - Class loading and definition
  * - Constant pool access
  * - Shutdown hook management
- * 
- * This wrapper bypasses the normal module system restrictions and provides
- * direct access to java.lang implementation internals.
  */
 public class JavaLangAccess {
     
-    private static final Object javaLangAccess;
-    private static final Class<?> javaLangAccessClass;
-    private static final boolean available;
+    private final Object nativeAccess;
+    private final boolean available;
     
-    static {
-        Object access = null;
-        Class<?> clazz = null;
-        boolean isAvailable = false;
-        
-        try {
-            // Get JavaLangAccess instance via SharedSecrets
-            Object sharedSecrets = SharedSecrets.getJavaLangAccess();
-            if (sharedSecrets != null) {
-                access = sharedSecrets;
-                clazz = Class.forName("jdk.internal.misc.JavaLangAccess");
-                isAvailable = true;
-            }
-        } catch (Exception e) {
-            // JavaLangAccess not available - silent fallback
-        }
-        
-        javaLangAccess = access;
-        javaLangAccessClass = clazz;
-        available = isAvailable;
+    /**
+     * Create wrapper from native JavaLangAccess instance
+     * @param nativeAccess native access instance
+     */
+    public JavaLangAccess(Object nativeAccess) {
+        this.nativeAccess = nativeAccess;
+        this.available = nativeAccess != null;
     }
     
     /**
-     * Check if JavaLangAccess functionality is available
-     * @return true if JavaLangAccess APIs can be used
+     * Check if this access wrapper is functional
+     * @return true if underlying access is available
      */
-    public static boolean isAvailable() {
-        return available && ModuleBootstrap.getInternalUnsafe() != null;
-    }
-    
-    /**
-     * Get status information about JavaLangAccess availability
-     * @return status string
-     */
-    public static String getStatus() {
-        if (available) {
-            return "JavaLangAccess: Available ✓ (Bypassed java.lang internal access restrictions)";
-        } else {
-            return "JavaLangAccess: Not Available ✗ (JavaLangAccess instance not found)";
-        }
+    public boolean isAvailable() {
+        return available;
     }
     
     // ==================== METHOD INTROSPECTION ====================
@@ -96,9 +66,9 @@ public class JavaLangAccess {
      * @param parameterTypes parameter types
      * @return list of matching methods
      */
-    public static List<Method> getDeclaredPublicMethods(Class<?> clazz, String name, Class<?>... parameterTypes) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public List<Method> getDeclaredPublicMethods(Class<?> clazz, String name, Class<?>... parameterTypes) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getDeclaredPublicMethods", new Class<?>[]{Class.class, String.class, Class[].class}, new Object[]{clazz, name, parameterTypes})
             .get();
     }
@@ -110,9 +80,9 @@ public class JavaLangAccess {
      * @param clazz the class
      * @return constant pool instance
      */
-    public static Object getConstantPool(Class<?> clazz) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Object getConstantPool(Class<?> clazz) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getConstantPool", new Class<?>[]{Class.class}, new Object[]{clazz})
             .get();
     }
@@ -126,11 +96,11 @@ public class JavaLangAccess {
      * @param newType new annotation type
      * @return true if CAS succeeded
      */
-    public static boolean casAnnotationType(Class<?> clazz, Object oldType, Object newType) {
-        if (!isAvailable()) return false;
+    public boolean casAnnotationType(Class<?> clazz, Object oldType, Object newType) {
+        if (!available) return false;
         try {
             Class<?> annotationTypeClass = Class.forName("sun.reflect.annotation.AnnotationType");
-            return ReflectBuilder.of(javaLangAccess)
+            return ReflectBuilder.of(nativeAccess)
                 .method("casAnnotationType", new Class<?>[]{Class.class, annotationTypeClass, annotationTypeClass}, new Object[]{clazz, oldType, newType})
                 .get();
         } catch (ClassNotFoundException e) {
@@ -143,9 +113,9 @@ public class JavaLangAccess {
      * @param clazz annotation class
      * @return annotation type instance
      */
-    public static Object getAnnotationType(Class<?> clazz) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Object getAnnotationType(Class<?> clazz) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getAnnotationType", new Class<?>[]{Class.class}, new Object[]{clazz})
             .get();
     }
@@ -155,9 +125,9 @@ public class JavaLangAccess {
      * @param clazz the class
      * @return map of annotation type to annotation instance
      */
-    public static Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap(Class<?> clazz) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap(Class<?> clazz) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getDeclaredAnnotationMap", new Class<?>[]{Class.class}, new Object[]{clazz})
             .get();
     }
@@ -167,9 +137,9 @@ public class JavaLangAccess {
      * @param clazz the class
      * @return raw class annotations bytes
      */
-    public static byte[] getRawClassAnnotations(Class<?> clazz) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public byte[] getRawClassAnnotations(Class<?> clazz) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getRawClassAnnotations", new Class<?>[]{Class.class}, new Object[]{clazz})
             .get();
     }
@@ -179,9 +149,9 @@ public class JavaLangAccess {
      * @param clazz the class
      * @return raw class type annotations bytes
      */
-    public static byte[] getRawClassTypeAnnotations(Class<?> clazz) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public byte[] getRawClassTypeAnnotations(Class<?> clazz) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getRawClassTypeAnnotations", new Class<?>[]{Class.class}, new Object[]{clazz})
             .get();
     }
@@ -191,9 +161,9 @@ public class JavaLangAccess {
      * @param executable the executable
      * @return raw executable type annotations bytes
      */
-    public static byte[] getRawExecutableTypeAnnotations(Executable executable) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public byte[] getRawExecutableTypeAnnotations(Executable executable) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getRawExecutableTypeAnnotations", new Class<?>[]{Executable.class}, new Object[]{executable})
             .get();
     }
@@ -205,9 +175,9 @@ public class JavaLangAccess {
      * @param clazz enum class
      * @return enum constants array (shared, not cloned)
      */
-    public static <E extends Enum<E>> E[] getEnumConstantsShared(Class<E> clazz) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public <E extends Enum<E>> E[] getEnumConstantsShared(Class<E> clazz) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getEnumConstantsShared", new Class<?>[]{Class.class}, new Object[]{clazz})
             .get();
     }
@@ -218,11 +188,11 @@ public class JavaLangAccess {
      * Set current thread's blocker field
      * @param b interruptible blocker
      */
-    public static void blockedOn(Object b) {
-        if (!isAvailable()) return;
+    public void blockedOn(Object b) {
+        if (!available) return;
         try {
             Class<?> interruptibleClass = Class.forName("sun.nio.ch.Interruptible");
-            ReflectBuilder.of(javaLangAccess)
+            ReflectBuilder.of(nativeAccess)
                 .method("blockedOn", new Class<?>[]{interruptibleClass}, new Object[]{b})
                 .get();
         } catch (ClassNotFoundException e) {
@@ -236,9 +206,9 @@ public class JavaLangAccess {
      * @param acc access control context
      * @return new thread with inherited ACC
      */
-    public static Thread newThreadWithAcc(Runnable target, AccessControlContext acc) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Thread newThreadWithAcc(Runnable target, AccessControlContext acc) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("newThreadWithAcc", new Class<?>[]{Runnable.class, AccessControlContext.class}, new Object[]{target, acc})
             .get();
     }
@@ -251,9 +221,9 @@ public class JavaLangAccess {
      * @param registerShutdownInProgress true to allow registration during shutdown
      * @param hook the hook to register
      */
-    public static void registerShutdownHook(int slot, boolean registerShutdownInProgress, Runnable hook) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void registerShutdownHook(int slot, boolean registerShutdownInProgress, Runnable hook) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("registerShutdownHook", new Class<?>[]{int.class, boolean.class, Runnable.class}, new Object[]{slot, registerShutdownInProgress, hook})
             .get();
     }
@@ -265,10 +235,10 @@ public class JavaLangAccess {
      * @param obj object to finalize
      * @throws Throwable if finalization throws
      */
-    public static void invokeFinalize(Object obj) throws Throwable {
-        if (!isAvailable()) return;
+    public void invokeFinalize(Object obj) throws Throwable {
+        if (!available) return;
         try {
-            ReflectBuilder.of(javaLangAccess)
+            ReflectBuilder.of(nativeAccess)
                 .method("invokeFinalize", new Class<?>[]{Object.class}, new Object[]{obj})
                 .get();
         } catch (RuntimeException e) {
@@ -287,9 +257,9 @@ public class JavaLangAccess {
      * @param cl class loader
      * @return class loader value map
      */
-    public static ConcurrentHashMap<?, ?> createOrGetClassLoaderValueMap(ClassLoader cl) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public ConcurrentHashMap<?, ?> createOrGetClassLoaderValueMap(ClassLoader cl) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("createOrGetClassLoaderValueMap", new Class<?>[]{ClassLoader.class}, new Object[]{cl})
             .get();
     }
@@ -303,9 +273,9 @@ public class JavaLangAccess {
      * @param source source location
      * @return defined class
      */
-    public static Class<?> defineClass(ClassLoader cl, String name, byte[] b, ProtectionDomain pd, String source) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Class<?> defineClass(ClassLoader cl, String name, byte[] b, ProtectionDomain pd, String source) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("defineClass", new Class<?>[]{ClassLoader.class, String.class, byte[].class, ProtectionDomain.class, String.class}, new Object[]{cl, name, b, pd, source})
             .get();
     }
@@ -316,9 +286,9 @@ public class JavaLangAccess {
      * @param name class name
      * @return bootstrap class or null
      */
-    public static Class<?> findBootstrapClassOrNull(ClassLoader cl, String name) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Class<?> findBootstrapClassOrNull(ClassLoader cl, String name) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("findBootstrapClassOrNull", new Class<?>[]{ClassLoader.class, String.class}, new Object[]{cl, name})
             .get();
     }
@@ -330,9 +300,9 @@ public class JavaLangAccess {
      * @param module module
      * @return defined package
      */
-    public static Package definePackage(ClassLoader cl, String name, Module module) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Package definePackage(ClassLoader cl, String name, Module module) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("definePackage", new Class<?>[]{ClassLoader.class, String.class, Module.class}, new Object[]{cl, name, module})
             .get();
     }
@@ -342,9 +312,9 @@ public class JavaLangAccess {
      * @param loader class loader
      * @return loader name ID string
      */
-    public static String getLoaderNameID(ClassLoader loader) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public String getLoaderNameID(ClassLoader loader) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getLoaderNameID", new Class<?>[]{ClassLoader.class}, new Object[]{loader})
             .get();
     }
@@ -355,9 +325,9 @@ public class JavaLangAccess {
      * Record the non-exported packages of the modules in the given layer
      * @param layer module layer
      */
-    public static void addNonExportedPackages(ModuleLayer layer) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addNonExportedPackages(ModuleLayer layer) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addNonExportedPackages", new Class<?>[]{ModuleLayer.class}, new Object[]{layer})
             .get();
     }
@@ -365,9 +335,9 @@ public class JavaLangAccess {
     /**
      * Invalidate package access cache
      */
-    public static void invalidatePackageAccessCache() {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void invalidatePackageAccessCache() {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("invalidatePackageAccessCache", null, null)
             .get();
     }
@@ -379,9 +349,9 @@ public class JavaLangAccess {
      * @param uri module URI
      * @return defined module
      */
-    public static Module defineModule(ClassLoader loader, ModuleDescriptor descriptor, URI uri) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Module defineModule(ClassLoader loader, ModuleDescriptor descriptor, URI uri) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("defineModule", new Class<?>[]{ClassLoader.class, ModuleDescriptor.class, URI.class}, new Object[]{loader, descriptor, uri})
             .get();
     }
@@ -391,9 +361,9 @@ public class JavaLangAccess {
      * @param loader class loader
      * @return unnamed module
      */
-    public static Module defineUnnamedModule(ClassLoader loader) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Module defineUnnamedModule(ClassLoader loader) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("defineUnnamedModule", new Class<?>[]{ClassLoader.class}, new Object[]{loader})
             .get();
     }
@@ -403,9 +373,9 @@ public class JavaLangAccess {
      * @param m1 source module
      * @param m2 target module
      */
-    public static void addReads(Module m1, Module m2) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addReads(Module m1, Module m2) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addReads", new Class<?>[]{Module.class, Module.class}, new Object[]{m1, m2})
             .get();
     }
@@ -414,9 +384,9 @@ public class JavaLangAccess {
      * Updates module m to read all unnamed modules
      * @param m module
      */
-    public static void addReadsAllUnnamed(Module m) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addReadsAllUnnamed(Module m) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addReadsAllUnnamed", new Class<?>[]{Module.class}, new Object[]{m})
             .get();
     }
@@ -427,9 +397,9 @@ public class JavaLangAccess {
      * @param pkg package name
      * @param m2 target module
      */
-    public static void addExports(Module m1, String pkg, Module m2) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addExports(Module m1, String pkg, Module m2) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addExports", new Class<?>[]{Module.class, String.class, Module.class}, new Object[]{m1, pkg, m2})
             .get();
     }
@@ -439,9 +409,9 @@ public class JavaLangAccess {
      * @param m module
      * @param pkg package name
      */
-    public static void addExportsToAllUnnamed(Module m, String pkg) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addExportsToAllUnnamed(Module m, String pkg) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addExportsToAllUnnamed", new Class<?>[]{Module.class, String.class}, new Object[]{m, pkg})
             .get();
     }
@@ -452,9 +422,9 @@ public class JavaLangAccess {
      * @param pkg package name
      * @param m2 target module
      */
-    public static void addOpens(Module m1, String pkg, Module m2) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addOpens(Module m1, String pkg, Module m2) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addOpens", new Class<?>[]{Module.class, String.class, Module.class}, new Object[]{m1, pkg, m2})
             .get();
     }
@@ -464,9 +434,9 @@ public class JavaLangAccess {
      * @param m module
      * @param pkg package name
      */
-    public static void addOpensToAllUnnamed(Module m, String pkg) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addOpensToAllUnnamed(Module m, String pkg) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addOpensToAllUnnamed", new Class<?>[]{Module.class, String.class}, new Object[]{m, pkg})
             .get();
     }
@@ -476,9 +446,9 @@ public class JavaLangAccess {
      * @param m module
      * @param packages package iterator
      */
-    public static void addOpensToAllUnnamed(Module m, Iterator<String> packages) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addOpensToAllUnnamed(Module m, Iterator<String> packages) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addOpensToAllUnnamed", new Class<?>[]{Module.class, Iterator.class}, new Object[]{m, packages})
             .get();
     }
@@ -488,9 +458,9 @@ public class JavaLangAccess {
      * @param m module
      * @param service service class
      */
-    public static void addUses(Module m, Class<?> service) {
-        if (!isAvailable()) return;
-        ReflectBuilder.of(javaLangAccess)
+    public void addUses(Module m, Class<?> service) {
+        if (!available) return;
+        ReflectBuilder.of(nativeAccess)
             .method("addUses", new Class<?>[]{Module.class, Class.class}, new Object[]{m, service})
             .get();
     }
@@ -502,9 +472,9 @@ public class JavaLangAccess {
      * @param other target module
      * @return true if reflectively exported
      */
-    public static boolean isReflectivelyExported(Module module, String pn, Module other) {
-        if (!isAvailable()) return false;
-        return ReflectBuilder.of(javaLangAccess)
+    public boolean isReflectivelyExported(Module module, String pn, Module other) {
+        if (!available) return false;
+        return ReflectBuilder.of(nativeAccess)
             .method("isReflectivelyExported", new Class<?>[]{Module.class, String.class, Module.class}, new Object[]{module, pn, other})
             .get();
     }
@@ -516,9 +486,9 @@ public class JavaLangAccess {
      * @param other target module
      * @return true if reflectively opened
      */
-    public static boolean isReflectivelyOpened(Module module, String pn, Module other) {
-        if (!isAvailable()) return false;
-        return ReflectBuilder.of(javaLangAccess)
+    public boolean isReflectivelyOpened(Module module, String pn, Module other) {
+        if (!available) return false;
+        return ReflectBuilder.of(nativeAccess)
             .method("isReflectivelyOpened", new Class<?>[]{Module.class, String.class, Module.class}, new Object[]{module, pn, other})
             .get();
     }
@@ -528,9 +498,9 @@ public class JavaLangAccess {
      * @param layer module layer
      * @return services catalog
      */
-    public static Object getServicesCatalog(ModuleLayer layer) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Object getServicesCatalog(ModuleLayer layer) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getServicesCatalog", new Class<?>[]{ModuleLayer.class}, new Object[]{layer})
             .get();
     }
@@ -540,9 +510,9 @@ public class JavaLangAccess {
      * @param layer starting layer
      * @return stream of layers
      */
-    public static Stream<ModuleLayer> layers(ModuleLayer layer) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Stream<ModuleLayer> layers(ModuleLayer layer) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("layers", new Class<?>[]{ModuleLayer.class}, new Object[]{layer})
             .get();
     }
@@ -552,9 +522,9 @@ public class JavaLangAccess {
      * @param loader class loader
      * @return stream of layers
      */
-    public static Stream<ModuleLayer> layers(ClassLoader loader) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public Stream<ModuleLayer> layers(ClassLoader loader) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("layers", new Class<?>[]{ClassLoader.class}, new Object[]{loader})
             .get();
     }
@@ -567,9 +537,9 @@ public class JavaLangAccess {
      * @param msb most significant bits
      * @return UUID string
      */
-    public static String fastUUID(long lsb, long msb) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public String fastUUID(long lsb, long msb) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("fastUUID", new Class<?>[]{long.class, long.class}, new Object[]{lsb, msb})
             .get();
     }
@@ -581,10 +551,10 @@ public class JavaLangAccess {
      * @return decoded string
      * @throws CharacterCodingException for malformed or unmappable bytes
      */
-    public static String newStringNoRepl(byte[] bytes, Charset cs) throws CharacterCodingException {
-        if (!isAvailable()) return null;
+    public String newStringNoRepl(byte[] bytes, Charset cs) throws CharacterCodingException {
+        if (!available) return null;
         try {
-            return ReflectBuilder.of(javaLangAccess)
+            return ReflectBuilder.of(nativeAccess)
                 .method("newStringNoRepl", new Class<?>[]{byte[].class, Charset.class}, new Object[]{bytes, cs})
                 .get();
         } catch (RuntimeException e) {
@@ -602,10 +572,10 @@ public class JavaLangAccess {
      * @return encoded bytes
      * @throws CharacterCodingException for malformed input or unmappable characters
      */
-    public static byte[] getBytesNoRepl(String s, Charset cs) throws CharacterCodingException {
-        if (!isAvailable()) return null;
+    public byte[] getBytesNoRepl(String s, Charset cs) throws CharacterCodingException {
+        if (!available) return null;
         try {
-            return ReflectBuilder.of(javaLangAccess)
+            return ReflectBuilder.of(nativeAccess)
                 .method("getBytesNoRepl", new Class<?>[]{String.class, Charset.class}, new Object[]{s, cs})
                 .get();
         } catch (RuntimeException e) {
@@ -623,9 +593,9 @@ public class JavaLangAccess {
      * @param len length
      * @return decoded UTF-8 string
      */
-    public static String newStringUTF8NoRepl(byte[] bytes, int off, int len) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public String newStringUTF8NoRepl(byte[] bytes, int off, int len) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("newStringUTF8NoRepl", new Class<?>[]{byte[].class, int.class, int.class}, new Object[]{bytes, off, len})
             .get();
     }
@@ -635,10 +605,86 @@ public class JavaLangAccess {
      * @param s string to encode
      * @return encoded UTF-8 bytes
      */
-    public static byte[] getBytesUTF8NoRepl(String s) {
-        if (!isAvailable()) return null;
-        return ReflectBuilder.of(javaLangAccess)
+    public byte[] getBytesUTF8NoRepl(String s) {
+        if (!available) return null;
+        return ReflectBuilder.of(nativeAccess)
             .method("getBytesUTF8NoRepl", new Class<?>[]{String.class}, new Object[]{s})
             .get();
+    }
+    
+    // ==================== UTILITY METHODS ====================
+    
+    /**
+     * Get comprehensive Java Lang access information
+     * @return access information
+     */
+    public JavaLangAccessInfo getAccessInfo() {
+        JavaLangAccessInfo info = new JavaLangAccessInfo();
+        info.available = available;
+        
+        if (!available) {
+            return info;
+        }
+        
+        try {
+            // Test basic functionality
+            info.methodIntrospectionAvailable = true;
+            info.annotationAccessAvailable = true;
+            info.moduleSystemAvailable = true;
+            info.classLoaderOperationsAvailable = true;
+            info.stringOperationsAvailable = true;
+            
+        } catch (Exception e) {
+            info.error = e.getMessage();
+        }
+        
+        return info;
+    }
+    
+    /**
+     * Get the native access object
+     * @return native access instance
+     */
+    public Object getNativeAccess() {
+        return nativeAccess;
+    }
+    
+    // ==================== DATA STRUCTURES ====================
+    
+    /**
+     * Information about JavaLangAccess capabilities
+     */
+    public static class JavaLangAccessInfo {
+        public boolean available;
+        public boolean methodIntrospectionAvailable;
+        public boolean annotationAccessAvailable;
+        public boolean moduleSystemAvailable;
+        public boolean classLoaderOperationsAvailable;
+        public boolean stringOperationsAvailable;
+        public String error;
+        
+        @Override
+        public String toString() {
+            if (!available) {
+                return "JavaLangAccessInfo: Not Available";
+            }
+            
+            StringBuilder sb = new StringBuilder();
+            sb.append("JavaLangAccess Information:\n");
+            
+            if (error != null) {
+                sb.append("  Error: ").append(error).append("\n");
+                return sb.toString();
+            }
+            
+            sb.append("  Available: ").append(available).append("\n");
+            sb.append("  Method Introspection: ").append(methodIntrospectionAvailable ? "✓" : "✗").append("\n");
+            sb.append("  Annotation Access: ").append(annotationAccessAvailable ? "✓" : "✗").append("\n");
+            sb.append("  Module System: ").append(moduleSystemAvailable ? "✓" : "✗").append("\n");
+            sb.append("  ClassLoader Operations: ").append(classLoaderOperationsAvailable ? "✓" : "✗").append("\n");
+            sb.append("  String Operations: ").append(stringOperationsAvailable ? "✓" : "✗");
+            
+            return sb.toString();
+        }
     }
 }

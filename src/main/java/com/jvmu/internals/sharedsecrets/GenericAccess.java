@@ -105,7 +105,7 @@ public class GenericAccess {
      * @return method result
      */
     public <T> T invoke(String methodName) {
-        return invoke(methodName, null, null);
+        return invoke(methodName, (Class<?>[]) null, (Object[]) null);
     }
     
     /**
