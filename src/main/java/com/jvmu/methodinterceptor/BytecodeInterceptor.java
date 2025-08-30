@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * enabling true interception of direct method calls by replacing the
  * method body with interceptor calls.
  */
-public class RealBytecodeInterceptor {
+public class BytecodeInterceptor {
     
     // Registry of real bytecode hooks
     private static final Map<Method, RealBytecodeHook> realHooks = new ConcurrentHashMap<>();
@@ -547,7 +547,7 @@ public class RealBytecodeInterceptor {
          * Remove this real bytecode hook
          */
         public void remove() {
-            RealBytecodeInterceptor.removeRealBytecodeHook(this);
+            BytecodeInterceptor.removeRealBytecodeHook(this);
         }
         
         public void incrementDirectCalls() {

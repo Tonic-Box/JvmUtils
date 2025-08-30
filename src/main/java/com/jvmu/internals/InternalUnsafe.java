@@ -267,9 +267,47 @@ public class InternalUnsafe {
                 .get();
     }
     
+    public static byte getByte(long address) {
+        return ReflectBuilder.unsafe()
+                .method("getByte", new Class<?>[]{long.class}, new Object[]{address})
+                .get();
+    }
+    
+    public static void putByte(long address, byte value) {
+        ReflectBuilder.unsafe()
+                .method("putByte", new Class<?>[]{long.class, byte.class}, new Object[]{address, value})
+                .get();
+    }
+    
+    public static int getInt(long address) {
+        return ReflectBuilder.unsafe()
+                .method("getInt", new Class<?>[]{long.class}, new Object[]{address})
+                .get();
+    }
+    
+    public static void putInt(long address, int value) {
+        ReflectBuilder.unsafe()
+                .method("putInt", new Class<?>[]{long.class, int.class}, new Object[]{address, value})
+                .get();
+    }
+    
+    public static void putInt(Object obj, long offset, int value) {
+        ReflectBuilder.unsafe()
+                .method("putInt", new Class<?>[]{Object.class, long.class, int.class}, new Object[]{obj, offset, value})
+                .get();
+    }
+    
+    public static int getInt(Object obj, long offset) {
+        return ReflectBuilder.unsafe()
+                .method("getInt", new Class<?>[]{Object.class, long.class}, new Object[]{obj, offset})
+                .get();
+    }
+    
     public static long getObjectAddress(Object obj) {
-        // Use object identity hash as base for fake address (same approach as UnsafeProvider)
-        return System.identityHashCode(obj);
+        // Get real object address using Unsafe
+        return ReflectBuilder.unsafe()
+                .method("getLong", new Class<?>[]{Object.class, long.class}, new Object[]{obj, 0L})
+                .get();
     }
     
     /**
