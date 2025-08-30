@@ -232,7 +232,7 @@ Utilities for bypassing bytecode verification when needed.
 ## Requirements and Compatibility
 
 ### System Requirements
-- **Java Version:** JDK 11 or higher (JDK 17+ recommended)
+- **Java Version:** JDK 11
 - **JVM:** HotSpot JVM (OpenJDK or Oracle JDK)
 - **Operating System:** Windows, Linux, macOS
 - **Architecture:** x86-64 (primary), ARM64 (limited support)
@@ -550,20 +550,6 @@ public class APIStatus {
     }
 }
 ```
-
-### Environment-Specific Solutions
-
-#### Docker/Container Environments
-```dockerfile
-# Add JVM flags for container environments
-ENV JAVA_OPTS="--add-opens java.base/jdk.internal.misc=ALL-UNNAMED"
-```
-
-#### IDE Development
-Most IDEs work well with JvmUtils. For optimal development:
-- Add JVM flags to run configurations
-- Enable assertions for better error messages
-- Use debugging tools for bytecode analysis
 
 ## Contributing
 
