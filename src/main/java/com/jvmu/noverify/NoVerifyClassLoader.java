@@ -2,6 +2,7 @@ package com.jvmu.noverify;
 
 import com.jvmu.module.ModuleBootstrap;
 import lombok.Getter;
+import sun.misc.Unsafe;
 
 import java.lang.reflect.Method;
 import java.security.ProtectionDomain;

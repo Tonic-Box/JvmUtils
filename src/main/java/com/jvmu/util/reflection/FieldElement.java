@@ -1,13 +1,16 @@
 package com.jvmu.util.reflection;
 
 import com.jvmu.util.ReflectUtil;
-import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
 public class FieldElement implements Element
 {
     private final boolean isStatic;
     private final String name;
+
+    public FieldElement(boolean isStatic, String name) {
+        this.isStatic = isStatic;
+        this.name = name;
+    }
 
     @Override
     public Object get(Object o) throws Exception {

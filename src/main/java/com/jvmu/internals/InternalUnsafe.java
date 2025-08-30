@@ -240,4 +240,48 @@ public class InternalUnsafe {
                         new Object[]{o, offset, expected, x}
                 ).get();
     }
+    
+    // Additional methods needed for EmulatedAgent
+    
+    public static Object getObject(Object o, long offset) {
+        return ReflectBuilder.unsafe()
+                .method("getObject", new Class<?>[]{Object.class, long.class}, new Object[]{o, offset})
+                .get();
+    }
+    
+    public static void putObject(Object o, long offset, Object value) {
+        ReflectBuilder.unsafe()
+                .method("putObject", new Class<?>[]{Object.class, long.class, Object.class}, new Object[]{o, offset, value})
+                .get();
+    }
+    
+    public static void putLong(Object o, long offset, long value) {
+        ReflectBuilder.unsafe()
+                .method("putLong", new Class<?>[]{Object.class, long.class, long.class}, new Object[]{o, offset, value})
+                .get();
+    }
+    
+    public static void putBoolean(Object o, long offset, boolean value) {
+        ReflectBuilder.unsafe()
+                .method("putBoolean", new Class<?>[]{Object.class, long.class, boolean.class}, new Object[]{o, offset, value})
+                .get();
+    }
+    
+    public static long getObjectAddress(Object obj) {
+        // Use object identity hash as base for fake address (same approach as UnsafeProvider)
+        return System.identityHashCode(obj);
+    }
+    
+    /**
+     * Check if Unsafe functionality is available
+     */
+    public static boolean isAvailable() {
+        try {
+            // Test if we can access the internal unsafe instance
+            Object unsafe = ModuleBootstrap.getInternalUnsafe();
+            return unsafe != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

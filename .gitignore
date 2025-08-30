@@ -52,3 +52,6 @@ bin/
 /lib/asm-commons-9.5.jar
 /lib/asm-util-9.5.jar
 /download_asm.bat
+/lib/
+/gradle/
+/.idea/

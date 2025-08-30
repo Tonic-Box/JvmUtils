@@ -1,5 +1,7 @@
 package com.jvmu.module;
 
+import sun.misc.Unsafe;
+
 import java.lang.invoke.*;
 import java.lang.reflect.*;
 import java.util.*;
