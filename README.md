@@ -246,48 +246,6 @@ Utilities for bypassing bytecode verification when needed.
 | GraalVM JIT       | Partial | Limited internal access |
 | GraalVM Native    | None | Not compatible |
 
-### Required JVM Flags (Optional)
-For enhanced functionality, consider these JVM flags:
-```bash
-# Allow reflection access to internal packages
---add-opens java.base/jdk.internal.misc=ALL-UNNAMED
---add-opens java.base/java.lang=ALL-UNNAMED
---add-opens java.base/sun.nio.ch=ALL-UNNAMED
-
-# Enable diagnostic VM options
--XX:+UnlockDiagnosticVMOptions
-
-# For WhiteBox API (maximum functionality)
--XX:+WhiteBoxAPI
-
-# Increase direct memory limit (for DirectMemoryManager)
--XX:MaxDirectMemorySize=4g
-
-# Disable module system warnings (Java 9-16)
---illegal-access=permit
-```
-
-## Installation
-
-### Maven Dependency
-```xml
-<dependency>
-    <groupId>com.jvmu</groupId>
-    <artifactId>jvmutils</artifactId>
-    <version>1.0.0</version>
-</dependency>
-```
-
-### Gradle Dependency
-```groovy
-implementation 'com.jvmu:jvmutils:1.0.0'
-```
-
-### Manual Installation
-1. Download the JAR from releases
-2. Add to your classpath
-3. Ensure JDK 11+ is available
-
 ## Usage Examples
 
 ### Memory Management Example
